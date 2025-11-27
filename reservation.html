@@ -1,0 +1,160 @@
+<!DOCTYPE html>
+<html lang="ar">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>حجز موعد - صالون لمسة إبداعية</title>
+<style>
+body {
+    margin: 0;
+    font-family: 'Cairo', sans-serif;
+    background-color: #111;
+    color: #fff;
+}
+header {
+    background-color: #1a1a1a;
+    padding: 20px;
+    text-align: center;
+    font-size: 24px;
+    font-weight: bold;
+}
+.container {
+    padding: 20px;
+    max-width: 500px;
+    margin: auto;
+}
+.logo {
+    width: 80px;
+    height: 80px;
+    margin: auto;
+}
+.logo img {
+    width: 100%;
+    height: 100%;
+    object-fit: contain;
+}
+h2 {
+    text-align: center;
+    margin: 20px 0 15px 0;
+}
+
+/* نموذج الحجز */
+.booking-form {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+}
+.booking-form input, .booking-form select {
+    padding: 10px;
+    border-radius: 6px;
+    border: none;
+    font-size: 14px;
+}
+.booking-form button {
+    padding: 14px;
+    font-size: 14px;
+    background-color: #f39c12;
+    color: #111;
+    font-weight: bold;
+    border: none;
+    border-radius: 6px;
+    cursor: pointer;
+    transition: transform 0.1s, box-shadow 0.1s, background-color 0.3s;
+}
+.booking-form button:hover {
+    background-color: #e67e22;
+}
+.booking-form button:active {
+    transform: scale(1.05);
+    box-shadow: 0 4px 10px rgba(0,0,0,0.4);
+}
+
+/* استجابة للجوال */
+@media (max-width: 500px) {
+    .booking-form input, .booking-form select, .booking-form button {
+        font-size: 12px;
+        padding: 12px;
+    }
+}
+</style>
+</head>
+<body>
+
+<header>
+    <div class="logo">
+        <img src="logo.png" alt="Logo">
+    </div>
+    صالون لمسة إبداعية
+</header>
+
+<div class="container">
+    <h2>حجز موعد</h2>
+    <div class="booking-form">
+        <input type="text" id="clientName" placeholder="اسم العميل">
+        <input type="tel" id="clientPhone" placeholder="رقم الجوال">
+        <select id="barberSelect">
+            <option value="">اختر الحلاق</option>
+            <option value="محمد">محمد</option>
+            <option value="أحمد">أحمد</option>
+            <option value="خالد">خالد</option>
+        </select>
+        <input type="date" id="bookingDate">
+        <input type="time" id="bookingTime">
+        <button onclick="sendBooking()">إرسال الحجز</button>
+        <button onclick="goBack()">الخروج</button>
+    </div>
+</div>
+
+<script>
+function sendBooking(){
+    const name = document.getElementById('clientName').value.trim();
+    const phone = document.getElementById('clientPhone').value.trim();
+    const barber = document.getElementById('barberSelect').value;
+    const date = document.getElementById('bookingDate').value;
+    const time = document.getElementById('bookingTime').value;
+
+    if(!name || !phone || !barber || !date || !time){
+        alert("الرجاء ملء جميع الحقول");
+        return;
+    }
+
+    const booking = {name, phone, barber, date, time, status:"تم الحجز"};
+
+    // حفظ الحجز في LocalStorage
+    let bookings = JSON.parse(localStorage.getItem("bookings")) || [];
+    bookings.push(booking);
+    localStorage.setItem("bookings", JSON.stringify(bookings));
+
+    // إشعارات محاكاة للحلاق والمدير
+    alert("تم إرسال الحجز للحلاق:\n" + formatBooking(booking));
+    alert("تم إرسال إشعار للمدير:\n" + formatBooking(booking));
+
+    // إعادة تعيين الحقول
+    document.getElementById('clientName').value = '';
+    document.getElementById('clientPhone').value = '';
+    document.getElementById('barberSelect').value = '';
+    document.getElementById('bookingDate').value = '';
+    document.getElementById('bookingTime').value = '';
+}
+
+function formatBooking(b){
+    return `العميل: ${b.name}\nرقم الجوال: ${b.phone}\nالحلاق: ${b.barber}\nالتاريخ: ${b.date}\nالوقت: ${b.time}`;
+}
+
+function goBack(){
+    window.location.href = "index.html";
+}
+</script>
+
+<!-- ملفات JS القديمة -->
+<script src="employee-work.js"></script>
+
+<!-- Firebase + مزامنة LocalStorage -->
+<script type="module" src="firebase-config.js"></script>
+<script type="module" src="sync-firebase.js"></script>
+
+<!-- أي كود JS يعتمد على LocalStorage -->
+<script src="dashboard.js"></script>
+
+</body>
+</html>

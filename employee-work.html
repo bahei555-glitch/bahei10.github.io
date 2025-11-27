@@ -1,0 +1,290 @@
+<!DOCTYPE html>
+<html lang="ar">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>تسجيل المبيعات - موظف</title>
+<style>
+body {
+    margin: 0;
+    font-family: 'Cairo', sans-serif;
+    background-color: #111;
+    color: #fff;
+}
+header {
+    background-color: #1a1a1a;
+    padding: 20px;
+    text-align: center;
+    font-size: 24px;
+    font-weight: bold;
+    position: sticky;
+    top: 0;
+    z-index: 100;
+}
+.container {
+    padding: 20px;
+    max-width: 900px;
+    margin: auto;
+}
+.logo {
+    width: 60px;
+    height: 60px;
+    margin: auto;
+}
+.logo img {
+    width: 100%;
+    height: 100%;
+    object-fit: contain;
+}
+.barber-name {
+    text-align: center;
+    font-size: 20px;
+    font-weight: bold;
+    margin: 10px 0 15px 0;
+}
+
+/* البطاقات المصغرة */
+.cards {
+    display: flex;
+    justify-content: space-between;
+    gap: 10px;
+    margin-bottom: 15px;
+    flex-wrap: wrap;
+}
+.card {
+    flex: 1 1 30%;
+    min-width: 80px;
+    background-color: #222;
+    padding: 8px;
+    border-radius: 10px;
+    text-align: center;
+}
+.card h3 {
+    margin: 0;
+    font-size: 14px;
+    color: #f39c12;
+}
+.card p {
+    margin: 5px 0 0 0;
+    font-size: 16px;
+    font-weight: bold;
+}
+
+/* تسجيل المبلغ */
+.sale-entry {
+    display: flex;
+    gap: 8px;
+    margin-bottom: 15px;
+    flex-wrap: wrap;
+}
+.sale-entry input {
+    flex: 1;
+    padding: 10px;
+    border-radius: 6px;
+    border: none;
+    font-size: 14px;
+}
+.sale-entry button {
+    flex: 1;
+    padding: 16px;
+    font-size: 14px;
+    background-color: #f39c12;
+    color: #111;
+    font-weight: bold;
+    border: none;
+    border-radius: 6px;
+    cursor: pointer;
+    transition: transform 0.1s, box-shadow 0.1s, background-color 0.3s;
+}
+.sale-entry button:hover {
+    background-color: #e67e22;
+}
+.sale-entry button:active {
+    transform: scale(1.05);
+    box-shadow: 0 4px 10px rgba(0,0,0,0.4);
+}
+
+/* أزرار الفلتر والخروج */
+.action-row {
+    display: flex;
+    gap: 10px;
+    margin-bottom: 15px;
+    flex-wrap: wrap;
+}
+.action-row button {
+    flex: 1;
+    padding: 16px;
+    font-size: 14px;
+    background-color: #f39c12;
+    color: #111;
+    font-weight: bold;
+    border: none;
+    border-radius: 6px;
+    cursor: pointer;
+    transition: transform 0.1s, box-shadow 0.1s, background-color 0.3s;
+}
+.action-row button:hover {
+    background-color: #e67e22;
+}
+.action-row button:active {
+    transform: scale(1.05);
+    box-shadow: 0 4px 10px rgba(0,0,0,0.4);
+}
+
+/* جدول العمليات مع تمرير أفقي على الجوال */
+.table-wrapper {
+    overflow-x: auto;
+}
+table {
+    width: 100%;
+    border-collapse: collapse;
+}
+th, td {
+    padding: 10px;
+    border: 1px solid #333;
+    text-align: center;
+    font-size: 14px;
+}
+th {
+    background-color: #222;
+}
+tr:nth-child(even) {background-color: #1a1a1a;}
+tr:nth-child(odd) {background-color: #222;}
+
+/* استجابة للجوال */
+@media (max-width: 500px) {
+    .barber-name {
+        font-size: 16px;
+    }
+    .sale-entry input, .sale-entry button, .action-row button {
+        font-size: 12px;
+        padding: 12px;
+    }
+}
+</style>
+</head>
+<body>
+
+<header>تسجيل المبيعات - موظف</header>
+
+<div class="container">
+    <div class="logo">
+        <img src="logo.png" alt="Logo">
+    </div>
+    <div class="barber-name">الحلاق: محمد</div>
+
+    <!-- البطاقات المصغرة -->
+    <div class="cards">
+        <div class="card">
+            <h3>كاش</h3>
+            <p id="totalCash">0</p>
+        </div>
+        <div class="card">
+            <h3>شبكة</h3>
+            <p id="totalCard">0</p>
+        </div>
+        <div class="card">
+            <h3>الإجمالي</h3>
+            <p id="totalAll">0</p>
+        </div>
+    </div>
+
+    <!-- تسجيل المبلغ -->
+    <div class="sale-entry">
+        <input type="number" id="saleAmount" placeholder="أدخل المبلغ">
+        <button onclick="recordSale('كاش')">كاش</button>
+        <button onclick="recordSale('شبكة')">شبكة</button>
+    </div>
+
+    <!-- أزرار الفلتر والخروج -->
+    <div class="action-row">
+        <button onclick="applyFilter()">تطبيق الفلتر</button>
+        <button onclick="goBack()">الخروج</button>
+    </div>
+
+    <!-- جدول العمليات -->
+    <div class="table-wrapper">
+        <table>
+            <thead>
+                <tr>
+                    <th>المبلغ</th>
+                    <th>نوع الدفع</th>
+                    <th>التاريخ</th>
+                    <th>الوقت (EN)</th>
+                </tr>
+            </thead>
+            <tbody id="salesTable">
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<script>
+let sales = [];
+
+function recordSale(paymentType){
+    const amountInput = document.getElementById('saleAmount');
+    const amount = Number(amountInput.value);
+    if(isNaN(amount) || amount <= 0){
+        alert("أدخل مبلغ صالح");
+        return;
+    }
+    const now = new Date();
+    const date = now.toISOString().split('T')[0];
+    const time = now.toLocaleTimeString('en-US', { hour12: false });
+    sales.push({amount, paymentType, date, time});
+    amountInput.value = '';
+    updateTable();
+    updateTotals();
+}
+
+function updateTable(filteredSales){
+    const tbody = document.getElementById('salesTable');
+    tbody.innerHTML = '';
+    const list = filteredSales || sales;
+    list.forEach(sale => {
+        const row = tbody.insertRow();
+        row.innerHTML = `<td>${sale.amount}</td>
+                         <td>${sale.paymentType}</td>
+                         <td>${sale.date}</td>
+                         <td>${sale.time}</td>`;
+    });
+}
+
+function updateTotals(){
+    const totalCash = sales.filter(s=>s.paymentType==='كاش').reduce((sum,s)=>sum+s.amount,0);
+    const totalCard = sales.filter(s=>s.paymentType==='شبكة').reduce((sum,s)=>sum+s.amount,0);
+    const totalAll = totalCash + totalCard;
+    document.getElementById('totalCash').innerText = totalCash;
+    document.getElementById('totalCard').innerText = totalCard;
+    document.getElementById('totalAll').innerText = totalAll;
+}
+
+function applyFilter(){
+    const start = prompt("أدخل تاريخ البداية YYYY-MM-DD:");
+    const end = prompt("أدخل تاريخ النهاية YYYY-MM-DD:");
+    if(!start || !end){
+        updateTable();
+        return;
+    }
+    const filtered = sales.filter(s => s.date >= start && s.date <= end);
+    updateTable(filtered);
+}
+
+function goBack(){
+    window.location.href = "index.html";
+}
+</script>
+
+<!-- ملفات JS القديمة -->
+<script src="employee-work.js"></script>
+
+<!-- Firebase + مزامنة LocalStorage -->
+<script type="module" src="firebase-config.js"></script>
+<script type="module" src="sync-firebase.js"></script>
+
+<!-- أي كود JS يعتمد على LocalStorage -->
+<script src="dashboard.js"></script>
+
+</body>
+</html>

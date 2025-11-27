@@ -1,0 +1,275 @@
+<!DOCTYPE html>
+<html lang="ar">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>متابعة المبيعات - المدير</title>
+<style>
+body {
+    margin: 0;
+    font-family: 'Cairo', sans-serif;
+    background-color: #111;
+    color: #fff;
+}
+header {
+    background-color: #1a1a1a;
+    padding: 20px;
+    text-align: center;
+    font-size: 24px;
+    font-weight: bold;
+}
+.container {
+    padding: 20px;
+    max-width: 900px;
+    margin: auto;
+}
+
+/* بطاقات الملخص */
+.cards-container {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+    margin-bottom: 20px;
+}
+.card {
+    flex: 1;
+    padding: 15px;
+    border-radius: 8px;
+    text-align: center;
+    color: #fff;
+}
+.card h3 { margin:0 0 10px 0; }
+.card p { font-size:18px; font-weight:bold; margin:0; }
+
+/* البطاقات اليومية */
+#dailyCash, #dailyCard, #dailyTotal {
+    background-color: #1e90ff; /* أزرق داكن */
+}
+
+/* البطاقات الشهرية */
+#monthCash, #monthCard, #monthTotal {
+    background-color: #ff8c00; /* برتقالي داكن */
+}
+
+/* أزرار الفلتر والخروج */
+.action-row {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+    margin-bottom: 15px;
+}
+.action-row input, .action-row select, .action-row button {
+    padding: 10px;
+    border-radius: 6px;
+    border: none;
+    font-size: 14px;
+}
+.action-row button {
+    background-color: #f39c12;
+    color: #111;
+    font-weight: bold;
+    cursor: pointer;
+    transition: transform 0.1s, box-shadow 0.1s, background-color 0.3s;
+}
+.action-row button:hover {
+    background-color: #e67e22;
+}
+.action-row button:active {
+    transform: scale(1.05);
+    box-shadow: 0 4px 10px rgba(0,0,0,0.4);
+}
+
+/* جدول المبيعات */
+.table-wrapper {
+    overflow-x: auto;
+}
+table {
+    width: 100%;
+    border-collapse: collapse;
+}
+th, td {
+    padding: 10px;
+    border: 1px solid #333;
+    text-align: center;
+    font-size: 14px;
+}
+th {
+    background-color: #222;
+}
+tr:nth-child(even) {background-color: #1a1a1a;}
+tr:nth-child(odd) {background-color: #222;}
+
+/* استجابة للجوال */
+@media (max-width: 500px) {
+    .cards-container {flex-direction: column;}
+    .card {flex: unset;}
+    .action-row input, .action-row select, .action-row button {
+        font-size: 12px;
+        padding: 8px;
+    }
+    table th, table td {
+        font-size: 12px;
+        padding: 6px;
+    }
+}
+</style>
+</head>
+<body>
+
+<header>متابعة المبيعات - المدير</header>
+
+<div class="container">
+
+    <!-- بطاقات الملخص -->
+    <div class="cards-container">
+        <div class="card" id="dailyCash"><h3>كاش اليوم</h3><p>0</p></div>
+        <div class="card" id="dailyCard"><h3>شبكة اليوم</h3><p>0</p></div>
+        <div class="card" id="dailyTotal"><h3>الإجمالي اليوم</h3><p>0</p></div>
+
+        <div class="card" id="monthCash"><h3>كاش الشهر</h3><p>0</p></div>
+        <div class="card" id="monthCard"><h3>شبكة الشهر</h3><p>0</p></div>
+        <div class="card" id="monthTotal"><h3>الإجمالي الشهر</h3><p>0</p></div>
+    </div>
+
+    <!-- أزرار الفلتر والخروج -->
+    <div class="action-row">
+        <select id="employeeFilter">
+            <option value="">كل الموظفين</option>
+        </select>
+        <select id="typeFilter">
+            <option value="">الكل</option>
+            <option value="كاش">كاش</option>
+            <option value="شبكة">شبكة</option>
+        </select>
+        <input type="date" id="startDate" placeholder="تاريخ البداية">
+        <input type="date" id="endDate" placeholder="تاريخ النهاية">
+        <button onclick="applyFilter()">تطبيق الفلتر</button>
+        <button onclick="goBack()">الخروج</button>
+    </div>
+
+    <!-- جدول المبيعات -->
+    <div class="table-wrapper">
+        <table>
+            <thead>
+                <tr>
+                    <th>الموظف</th>
+                    <th>نوع العملية</th>
+                    <th>المبلغ</th>
+                    <th>الوقت</th>
+                    <th>التاريخ</th>
+                </tr>
+            </thead>
+            <tbody id="salesTable"></tbody>
+        </table>
+    </div>
+
+</div>
+
+<script>
+// تحميل الموظفين في قائمة الفلتر
+function loadEmployeeFilter(){
+    const empSelect = document.getElementById('employeeFilter');
+    const employees = JSON.parse(localStorage.getItem("employees")) || [];
+    empSelect.innerHTML = '<option value="">كل الموظفين</option>';
+    employees.forEach(emp => {
+        empSelect.innerHTML += `<option value="${emp.name}">${emp.name}</option>`;
+    });
+}
+
+// تحميل وعرض المبيعات
+function loadSales(){
+    const sales = JSON.parse(localStorage.getItem("sales")) || [];
+    updateSalesTable(sales);
+    updateCards(sales);
+}
+
+function updateSalesTable(list){
+    const tbody = document.getElementById('salesTable');
+    tbody.innerHTML = '';
+    list.forEach(sale => {
+        const row = tbody.insertRow();
+        row.innerHTML = `<td>${sale.employee}</td>
+                         <td>${sale.type}</td>
+                         <td>${sale.amount}</td>
+                         <td>${sale.time}</td>
+                         <td>${sale.date}</td>`;
+    });
+}
+
+// تطبيق الفلتر
+function applyFilter(){
+    const employee = document.getElementById('employeeFilter').value;
+    const type = document.getElementById('typeFilter').value;
+    const start = document.getElementById('startDate').value;
+    const end = document.getElementById('endDate').value;
+
+    let sales = JSON.parse(localStorage.getItem("sales")) || [];
+    let filtered = sales;
+
+    if(employee) filtered = filtered.filter(s => s.employee === employee);
+    if(type) filtered = filtered.filter(s => s.type === type);
+    if(start) filtered = filtered.filter(s => s.date >= start);
+    if(end) filtered = filtered.filter(s => s.date <= end);
+
+    updateSalesTable(filtered);
+    updateCards(filtered);
+}
+
+// تحديث البطاقات اليومي والشهري
+function updateCards(sales){
+    const today = new Date();
+    const todayStr = today.toISOString().split('T')[0]; // YYYY-MM-DD
+    const monthStart = new Date(today.getFullYear(), today.getMonth(), 1);
+    const monthStartStr = monthStart.toISOString().split('T')[0];
+
+    let dailyCash = 0, dailyCard = 0;
+    let monthCash = 0, monthCard = 0;
+
+    sales.forEach(s => {
+        if(s.date === todayStr){
+            if(s.type === 'كاش') dailyCash += s.amount;
+            if(s.type === 'شبكة') dailyCard += s.amount;
+        }
+        if(s.date >= monthStartStr){
+            if(s.type === 'كاش') monthCash += s.amount;
+            if(s.type === 'شبكة') monthCard += s.amount;
+        }
+    });
+
+    document.getElementById('dailyCash').querySelector('p').innerText = dailyCash;
+    document.getElementById('dailyCard').querySelector('p').innerText = dailyCard;
+    document.getElementById('dailyTotal').querySelector('p').innerText = dailyCash + dailyCard;
+
+    document.getElementById('monthCash').querySelector('p').innerText = monthCash;
+    document.getElementById('monthCard').querySelector('p').innerText = monthCard;
+    document.getElementById('monthTotal').querySelector('p').innerText = monthCash + monthCard;
+}
+
+// تحديث مباشر عند أي تغيير في LocalStorage
+window.addEventListener("storage", function(e){
+    if(e.key === "sales"){
+        loadSales();
+    }
+});
+
+function goBack(){
+    window.location.href = "index.html";
+}
+
+// تحميل البيانات عند فتح الصفحة
+loadEmployeeFilter();
+loadSales();
+</script>
+
+<!-- ملفات JS القديمة -->
+<script src="employee-work.js"></script>
+
+<!-- Firebase + مزامنة LocalStorage -->
+<script type="module" src="firebase-config.js"></script>
+<script type="module" src="sync-firebase.js"></script>
+
+<!-- أي كود JS يعتمد على LocalStorage -->
+<script src="dashboard.js"></script>
+
+</body>
+</html>

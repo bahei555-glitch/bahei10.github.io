@@ -1,0 +1,273 @@
+<!DOCTYPE html>
+<html lang="ar">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>متابعة الحجوزات - المدير</title>
+<style>
+body {
+    margin: 0;
+    font-family: 'Cairo', sans-serif;
+    background-color: #111;
+    color: #fff;
+}
+header {
+    background-color: #1a1a1a;
+    padding: 20px;
+    text-align: center;
+    font-size: 24px;
+    font-weight: bold;
+}
+.container {
+    padding: 20px;
+    max-width: 900px;
+    margin: auto;
+}
+
+/* بطاقات الملخص */
+.cards-container {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+    margin-bottom: 20px;
+}
+.card {
+    flex: 1;
+    padding: 15px;
+    border-radius: 8px;
+    text-align: center;
+    color: #fff;
+}
+.card h3 { margin:0 0 10px 0; }
+.card p { font-size:18px; font-weight:bold; margin:0; }
+
+/* البطاقات اليومية */
+#dailyTotalBookings, #dailyConfirmed, #dailyCanceled {
+    background-color: #1e90ff; /* أزرق داكن */
+}
+
+/* البطاقات الشهرية */
+#monthTotalBookings, #monthConfirmed, #monthCanceled {
+    background-color: #ff8c00; /* برتقالي داكن */
+}
+
+/* أزرار الفلتر والخروج */
+.action-row {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+    margin-bottom: 15px;
+}
+.action-row select, .action-row input, .action-row button {
+    padding: 10px;
+    border-radius: 6px;
+    border: none;
+    font-size: 14px;
+}
+.action-row button {
+    background-color: #f39c12;
+    color: #111;
+    font-weight: bold;
+    cursor: pointer;
+    transition: transform 0.1s, box-shadow 0.1s, background-color 0.3s;
+}
+.action-row button:hover {
+    background-color: #e67e22;
+}
+.action-row button:active {
+    transform: scale(1.05);
+    box-shadow: 0 4px 10px rgba(0,0,0,0.4);
+}
+
+/* جدول الحجوزات */
+.table-wrapper {
+    overflow-x: auto;
+}
+table {
+    width: 100%;
+    border-collapse: collapse;
+}
+th, td {
+    padding: 10px;
+    border: 1px solid #333;
+    text-align: center;
+    font-size: 14px;
+}
+th {
+    background-color: #222;
+}
+tr:nth-child(even) {background-color: #1a1a1a;}
+tr:nth-child(odd) {background-color: #222;}
+
+/* استجابة للجوال */
+@media (max-width: 500px) {
+    .cards-container {flex-direction: column;}
+    .card {flex: unset;}
+    .action-row select, .action-row input, .action-row button {
+        font-size: 12px;
+        padding: 8px;
+    }
+    table th, table td {
+        font-size: 12px;
+        padding: 6px;
+    }
+}
+</style>
+</head>
+<body>
+
+<header>متابعة الحجوزات - المدير</header>
+
+<div class="container">
+
+    <!-- بطاقات الملخص -->
+    <div class="cards-container">
+        <!-- يومي -->
+        <div class="card" id="dailyTotalBookings"><h3>إجمالي اليوم</h3><p>0</p></div>
+        <div class="card" id="dailyConfirmed"><h3>مؤكد اليوم</h3><p>0</p></div>
+        <div class="card" id="dailyCanceled"><h3>ملغى اليوم</h3><p>0</p></div>
+        <!-- شهري -->
+        <div class="card" id="monthTotalBookings"><h3>إجمالي الشهر</h3><p>0</p></div>
+        <div class="card" id="monthConfirmed"><h3>مؤكد الشهر</h3><p>0</p></div>
+        <div class="card" id="monthCanceled"><h3>ملغى الشهر</h3><p>0</p></div>
+    </div>
+
+    <!-- أزرار الفلتر والخروج -->
+    <div class="action-row">
+        <select id="barberFilter">
+            <option value="">كل الحلاقين</option>
+        </select>
+        <input type="date" id="startDate" placeholder="تاريخ البداية">
+        <input type="date" id="endDate" placeholder="تاريخ النهاية">
+        <button onclick="applyFilter()">تطبيق الفلتر</button>
+        <button onclick="goBack()">الخروج</button>
+    </div>
+
+    <!-- جدول الحجوزات -->
+    <div class="table-wrapper">
+        <table>
+            <thead>
+                <tr>
+                    <th>اسم العميل</th>
+                    <th>رقم الجوال</th>
+                    <th>الحلاق</th>
+                    <th>التاريخ</th>
+                    <th>الوقت</th>
+                    <th>الحالة</th>
+                </tr>
+            </thead>
+            <tbody id="bookingsTable"></tbody>
+        </table>
+    </div>
+
+</div>
+
+<script>
+// تحميل قائمة الحلاقين للفلتر
+function loadBarberFilter(){
+    const select = document.getElementById('barberFilter');
+    const barbers = JSON.parse(localStorage.getItem("barbers")) || [];
+    select.innerHTML = '<option value="">كل الحلاقين</option>';
+    barbers.forEach(b => {
+        select.innerHTML += `<option value="${b.name}">${b.name}</option>`;
+    });
+}
+
+// تحميل وعرض الحجوزات
+function loadBookings(){
+    const bookings = JSON.parse(localStorage.getItem("bookings")) || [];
+    updateBookingsTable(bookings);
+    updateCards(bookings);
+}
+
+function updateBookingsTable(list){
+    const tbody = document.getElementById('bookingsTable');
+    tbody.innerHTML = '';
+    list.forEach(b => {
+        const row = tbody.insertRow();
+        row.innerHTML = `<td>${b.client}</td>
+                         <td>${b.phone}</td>
+                         <td>${b.barber}</td>
+                         <td>${b.date}</td>
+                         <td>${b.time}</td>
+                         <td>${b.status}</td>`;
+    });
+}
+
+// تطبيق الفلتر
+function applyFilter(){
+    const barber = document.getElementById('barberFilter').value;
+    const start = document.getElementById('startDate').value;
+    const end = document.getElementById('endDate').value;
+
+    let bookings = JSON.parse(localStorage.getItem("bookings")) || [];
+    let filtered = bookings;
+
+    if(barber) filtered = filtered.filter(b => b.barber === barber);
+    if(start) filtered = filtered.filter(b => b.date >= start);
+    if(end) filtered = filtered.filter(b => b.date <= end);
+
+    updateBookingsTable(filtered);
+    updateCards(filtered);
+}
+
+// تحديث البطاقات اليومية والشهرية
+function updateCards(bookings){
+    const today = new Date();
+    const todayStr = today.toISOString().split('T')[0];
+    const monthStart = new Date(today.getFullYear(), today.getMonth(), 1);
+    const monthStartStr = monthStart.toISOString().split('T')[0];
+
+    let dailyTotal=0, dailyConfirmed=0, dailyCanceled=0;
+    let monthTotal=0, monthConfirmed=0, monthCanceled=0;
+
+    bookings.forEach(b => {
+        if(b.date === todayStr){
+            dailyTotal++;
+            if(b.status==='مؤكد') dailyConfirmed++;
+            if(b.status==='ملغى') dailyCanceled++;
+        }
+        if(b.date >= monthStartStr){
+            monthTotal++;
+            if(b.status==='مؤكد') monthConfirmed++;
+            if(b.status==='ملغى') monthCanceled++;
+        }
+    });
+
+    document.getElementById('dailyTotalBookings').querySelector('p').innerText = dailyTotal;
+    document.getElementById('dailyConfirmed').querySelector('p').innerText = dailyConfirmed;
+    document.getElementById('dailyCanceled').querySelector('p').innerText = dailyCanceled;
+
+    document.getElementById('monthTotalBookings').querySelector('p').innerText = monthTotal;
+    document.getElementById('monthConfirmed').querySelector('p').innerText = monthConfirmed;
+    document.getElementById('monthCanceled').querySelector('p').innerText = monthCanceled;
+}
+
+// مراقبة أي تحديث في LocalStorage
+window.addEventListener("storage", function(e){
+    if(e.key === "bookings"){
+        loadBookings();
+    }
+});
+
+function goBack(){
+    window.location.href = "index.html";
+}
+
+// تحميل البيانات عند فتح الصفحة
+loadBarberFilter();
+loadBookings();
+</script>
+
+<!-- ملفات JS القديمة -->
+<script src="employee-work.js"></script>
+
+<!-- Firebase + مزامنة LocalStorage -->
+<script type="module" src="firebase-config.js"></script>
+<script type="module" src="sync-firebase.js"></script>
+
+<!-- أي كود JS يعتمد على LocalStorage -->
+<script src="dashboard.js"></script>
+
+</body>
+</html>

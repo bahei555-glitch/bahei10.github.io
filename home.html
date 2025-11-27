@@ -1,0 +1,35 @@
+<!DOCTYPE html>
+<html lang="ar">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>الرئيسية - صالون لمسة إبداعية</title>
+<link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+<div class="container">
+  <img src="images/logo.png" class="logo" alt="Logo">
+  <h1>صالون لمسة إبداعية</h1>
+  <div class="summary-cards">
+    <div class="card card-cash"><h3>💰 كاش</h3><p id="cashTotal">0 ريال</p></div>
+    <div class="card card-card"><h3>💳 شبكة</h3><p id="cardTotal">0 ريال</p></div>
+    <div class="card card-total"><h3>🏆 الإجمالي</h3><p id="allTotal">0 ريال</p></div>
+    <div class="card card-reserv"><h3>📅 الحجوزات اليوم</h3><p id="todayReservations">0</p></div>
+  </div>
+</div>
+<script>
+if(localStorage.getItem("role")!=="admin"){alert("الدخول مسموح للمدير فقط!");window.location.href="index.html";}
+</script>
+
+<!-- ملفات JS القديمة -->
+<script src="employee-work.js"></script>
+
+<!-- Firebase + مزامنة LocalStorage -->
+<script type="module" src="firebase-config.js"></script>
+<script type="module" src="sync-firebase.js"></script>
+
+<!-- أي كود JS يعتمد على LocalStorage -->
+<script src="dashboard.js"></script>
+
+</body>
+</html>
