@@ -1,0 +1,173 @@
+<!DOCTYPE html>
+<html lang="ar">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>إدارة المبيعات - صالون لمسة إبداعية</title>
+<style>
+body {
+    font-family:'Cairo',sans-serif;
+    background:#111;
+    color:#fff;
+    margin:0;
+    padding:0;
+}
+header {
+    display:flex;
+    align-items:center;
+    justify-content:space-between;
+    padding:15px 20px;
+    background:#111;
+    border-bottom:2px solid #444;
+}
+header h1 { color:gold; margin:0; font-size:24px; text-shadow:0 0 10px gold; }
+header .nav-buttons button {
+    margin-left:10px;
+    padding:10px 15px;
+    border:none;
+    border-radius:6px;
+    background:gold;
+    color:#111;
+    font-weight:bold;
+    cursor:pointer;
+    transition:0.2s;
+}
+header .nav-buttons button:hover { background:#ffbf00; }
+
+.container { max-width:1200px; margin:auto; padding:20px; }
+
+table { width:100%; border-collapse:collapse; margin-top:20px; }
+th, td { padding:12px; border:1px solid #444; text-align:center; }
+th { background:gold; color:#111; }
+td { background:#1c1c1c; color:#fff; }
+.delete-btn {
+    padding:6px 10px;
+    background:#ff4c4c;
+    color:#fff;
+    border:none;
+    border-radius:5px;
+    cursor:pointer;
+    transition:0.2s;
+}
+.delete-btn:hover { background:#e60000; }
+
+.search-row {
+    display:flex;
+    flex-wrap:wrap;
+    gap:10px;
+    margin-bottom:10px;
+}
+.search-row input, .search-row button {
+    padding:10px;
+    border-radius:6px;
+    border:none;
+    font-size:1rem;
+}
+.search-row input { flex:1; background:#222; color:#fff; }
+.search-row button { flex:1; background:#ffbf00; color:#111; font-weight:bold; cursor:pointer; transition:0.2s; }
+.search-row button:hover { background:#e6ac00; }
+
+</style>
+</head>
+<body>
+
+<header>
+    <h1>إدارة المبيعات</h1>
+    <div class="nav-buttons">
+        <button onclick="location.href='admin-dashboard.html'">الصفحة الرئيسية</button>
+        <button onclick="logout()">تسجيل الخروج</button>
+    </div>
+</header>
+
+<div class="container">
+    <div class="search-row">
+        <input type="date" id="fromDate" placeholder="من">
+        <input type="date" id="toDate" placeholder="إلى">
+        <button onclick="filterSales()">بحث</button>
+        <button onclick="resetFilter()">عرض الكل</button>
+    </div>
+
+    <table id="salesTable">
+        <thead>
+            <tr>
+                <th>الموظف</th>
+                <th>التاريخ</th>
+                <th>الوقت</th>
+                <th>نوع الدفع</th>
+                <th>المبلغ</th>
+                <th>حذف</th>
+            </tr>
+        </thead>
+        <tbody></tbody>
+    </table>
+</div>
+
+<script src="localStorage_data.js"></script>
+<script>
+if(!localStorage.getItem("isAdminLoggedIn")){
+    alert("⚠ يجب تسجيل الدخول كمدير!");
+    window.location.href="index.html";
+}
+
+function renderTable(sales){
+    const tbody = document.getElementById("salesTable").querySelector("tbody");
+    tbody.innerHTML = "";
+    const workers = getWorkers();
+    sales.forEach((s,index)=>{
+        const dateObj = new Date(s.dateTime);
+        const dateStr = dateObj.toLocaleDateString('ar-EG');
+        const timeStr = dateObj.toLocaleTimeString('ar-EG',{hour:'2-digit',minute:'2-digit'});
+        const empName = (workers.find(w=>w.username===s.employee)||{}).name || s.employee;
+        const tr = document.createElement("tr");
+        tr.innerHTML = `
+            <td>${empName}</td>
+            <td>${dateStr}</td>
+            <td>${timeStr}</td>
+            <td>${s.type==='cash'?'كاش':'شبكة'}</td>
+            <td>${s.amount}</td>
+            <td><button class="delete-btn" onclick="deleteSale(${index})">حذف</button></td>
+        `;
+        tbody.appendChild(tr);
+    });
+}
+
+function deleteSale(index){
+    if(!confirm("هل أنت متأكد من حذف هذه العملية؟")) return;
+    const sales = getSales();
+    sales.splice(index,1);
+    localStorage.setItem("sales", JSON.stringify(sales));
+    localStorage.setItem('salesUpdated', new Date().toISOString());
+    renderTable(sales);
+}
+
+function filterSales(){
+    const from = document.getElementById("fromDate").value;
+    const to = document.getElementById("toDate").value;
+    if(!from || !to){ alert("اختر التواريخ"); return; }
+    const filtered = getSales().filter(s=>{
+        const d = s.dateTime.split('T')[0];
+        return d>=from && d<=to;
+    });
+    renderTable(filtered);
+}
+
+function resetFilter(){
+    renderTable(getSales());
+}
+
+function logout(){
+    logoutAdmin();
+    window.location.href='index.html';
+}
+
+// التحديث عند تحميل الصفحة أو عند تعديل المبيعات من أي صفحة أخرى
+renderTable(getSales());
+window.addEventListener("storage", function(e){
+    if(e.key==='salesUpdated'){
+        renderTable(getSales());
+    }
+});
+</script>
+
+</body>
+</html>

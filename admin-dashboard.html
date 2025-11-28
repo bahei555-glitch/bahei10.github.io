@@ -1,0 +1,105 @@
+<!DOCTYPE html>
+<html lang="ar">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>لوحة المدير - صالون لمسة إبداعية</title>
+<style>
+body { font-family:'Cairo',sans-serif; background:#111; color:#fff; margin:0; padding:0; }
+header { background:#111; padding:20px; text-align:center; border-bottom:2px solid #444; }
+header img { width:100px;height:100px;border-radius:50%;object-fit:cover;border:4px solid gold;box-shadow:0 0 15px gold; }
+header h1 { margin:0;font-size:26px;color:gold;text-shadow:0 0 10px gold; }
+.container { max-width:1200px;margin:auto;padding:20px; }
+.nav-row { display:flex; flex-wrap:wrap; gap:10px; margin-bottom:20px; }
+.nav-row button { flex:1; padding:12px; font-weight:bold; font-size:16px; border:none; border-radius:6px; cursor:pointer; background:gold; color:#111; transition:0.3s; }
+.nav-row button:hover { background:#ffbf00; }
+.cards-container { display:flex; flex-wrap:wrap; gap:15px; margin-bottom:20px; }
+.card { flex:1; min-width:180px; background:#222; padding:15px; border-radius:10px; text-align:center; box-shadow:0 4px 12px rgba(255,215,0,0.2); transition:0.3s; }
+.card h3 { color:gold; margin:0 0 10px 0; }
+.card p { font-size:18px; font-weight:bold; margin:0; }
+@media(max-width:700px){ .cards-container { flex-direction:column; } .nav-row { flex-direction:column; } }
+</style>
+</head>
+<body>
+
+<header>
+<img src="logo.jpg" alt="Logo">
+<h1>لوحة المدير</h1>
+</header>
+
+<div class="container">
+
+<div class="nav-row">
+<button onclick="location.href='admin-employees.html'">إدارة الموظفين</button>
+<button onclick="location.href='admin-sales.html'">إدارة المبيعات</button>
+<button onclick="logout()">تسجيل الخروج</button>
+</div>
+
+<h2 style="color:gold;text-align:center;margin-bottom:20px;">بطاقات المبيعات اليومية والشهرية</h2>
+<div class="cards-container" id="generalCards"></div>
+
+<h2 style="color:gold;text-align:center;margin-bottom:20px;">بطاقات الموظفين</h2>
+<div class="cards-container" id="employeeCards"></div>
+
+</div>
+
+<script src="localStorage_data.js"></script>
+<script>
+if(!localStorage.getItem("isAdminLoggedIn")){
+    alert("⚠ يجب تسجيل الدخول كمدير!");
+    window.location.href="index.html";
+}
+
+function formatDate(d){ return new Date(d).toISOString().split('T')[0]; }
+function updateDashboard(){
+    const workers = getWorkers();
+    const sales = getSales();
+    const today = new Date().toISOString().split('T')[0];
+    const monthStart = new Date(new Date().getFullYear(), new Date().getMonth(),1).toISOString().split('T')[0];
+
+    let totalToday=0, totalMonth=0, cashToday=0, cashMonth=0, networkToday=0, networkMonth=0;
+
+    sales.forEach(s=>{
+        if(s.dateTime.split('T')[0]===today) totalToday+=s.amount;
+        if(s.dateTime.split('T')[0]>=monthStart) totalMonth+=s.amount;
+        if(s.dateTime.split('T')[0]===today && s.type==='cash') cashToday+=s.amount;
+        if(s.dateTime.split('T')[0]>=monthStart && s.type==='cash') cashMonth+=s.amount;
+        if(s.dateTime.split('T')[0]===today && s.type==='network') networkToday+=s.amount;
+        if(s.dateTime.split('T')[0]>=monthStart && s.type==='network') networkMonth+=s.amount;
+    });
+
+    const generalContainer=document.getElementById("generalCards");
+    generalContainer.innerHTML=`
+    <div class="card"><h3>الإجمالي اليومي</h3><p>${totalToday}</p></div>
+    <div class="card"><h3>كاش اليومي</h3><p>${cashToday}</p></div>
+    <div class="card"><h3>شبكة اليومي</h3><p>${networkToday}</p></div>
+    <div class="card"><h3>الإجمالي الشهري</h3><p>${totalMonth}</p></div>
+    <div class="card"><h3>كاش الشهري</h3><p>${cashMonth}</p></div>
+    <div class="card"><h3>شبكة الشهري</h3><p>${networkMonth}</p></div>
+    `;
+
+    const empContainer=document.getElementById("employeeCards");
+    empContainer.innerHTML="";
+    workers.forEach(w=>{
+        let empToday=0, empMonth=0;
+        sales.filter(s=>s.employee===w.username).forEach(s=>{
+            const date=s.dateTime.split('T')[0];
+            if(date===today) empToday+=s.amount;
+            if(date>=monthStart) empMonth+=s.amount;
+        });
+        const div=document.createElement("div");
+        div.className="card";
+        div.innerHTML=`<h3>${w.name}</h3><p>اليومي: ${empToday} | الشهري: ${empMonth}</p>`;
+        empContainer.appendChild(div);
+    });
+}
+
+function logout(){ logoutAdmin(); window.location.href='index.html'; }
+
+updateDashboard();
+window.addEventListener("storage", e=>{
+    if(e.key==='salesUpdated'){ updateDashboard(); }
+});
+</script>
+</body>
+</html>

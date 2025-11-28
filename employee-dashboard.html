@@ -1,0 +1,155 @@
+<!DOCTYPE html>
+<html lang="ar">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>لوحة الموظف - صالون لمسة إبداعية</title>
+<style>
+body { font-family:'Cairo',sans-serif; background:#111; color:#fff; margin:0; padding:0; }
+header { text-align:center; padding:20px 0; background:#111; border-bottom:2px solid #444; }
+header img { width:100px; height:100px; border-radius:50%; object-fit:cover; border:4px solid gold; box-shadow:0 0 15px gold; }
+header h1 { margin:10px 0 0 0; font-size:26px; color:gold; }
+header h2 { margin:5px 0 20px 0; font-size:20px; color:#fff; }
+
+.container { max-width:1000px; margin:auto; padding:20px; }
+
+/* بطاقات المبيعات */
+.cards-container { display:flex; flex-wrap:wrap; gap:15px; margin-bottom:20px; justify-content:space-between; }
+.card { flex:1; min-width:0; padding:20px; border-radius:10px; text-align:center; box-shadow:0 4px 12px rgba(0,0,0,0.5); transition: transform 0.3s, box-shadow 0.3s; position:relative; }
+#cashCard { background:#ffd700; color:#111; }
+#networkCard { background:#00c6ff; color:#111; }
+#totalCard { background:#32cd32; color:#111; }
+#cashCard h3::before { content:"💰 "; }
+#networkCard h3::before { content:"💳 "; }
+#totalCard h3::before { content:"📊 "; }
+.card:hover { transform:scale(1.05); box-shadow:0 6px 20px rgba(255,255,0,0.7); }
+.card p { font-size:20px; font-weight:bold; margin:10px 0 0 0; }
+
+/* أزرار تسجيل البيع */
+.actions-row { display:flex; flex-wrap:wrap; gap:10px; margin-bottom:20px; }
+.actions-row input, .actions-row button { padding:12px; font-size:1rem; border-radius:6px; border:none; }
+.actions-row input { flex:2; background:#222; color:#fff; }
+.actions-row button { flex:1; background:gold; color:#111; font-weight:bold; cursor:pointer; transition:0.2s; }
+.actions-row button:hover { transform:translateY(-2px); box-shadow:0 0 15px gold; }
+
+/* البحث وتحديد التاريخ */
+.search-row { display:flex; flex-wrap:wrap; gap:10px; margin-bottom:20px; }
+.search-row input, .search-row button { padding:10px; border-radius:6px; border:none; font-size:1rem; }
+.search-row input { flex:1; background:#222; color:#fff; }
+.search-row button { flex:1; background:#ffbf00; color:#111; font-weight:bold; cursor:pointer; transition:0.2s; }
+.search-row button:hover { background:#e6ac00; }
+
+/* جدول المبيعات */
+table { width:100%; border-collapse:collapse; margin-bottom:30px; }
+th, td { padding:12px; border:1px solid #444; text-align:center; }
+th { background:gold; color:#111; }
+td { background:#1c1c1c; color:#fff; }
+
+/* زر الخروج */
+.logout-btn { width:100%; padding:15px; background:#ff4c4c; color:#fff; font-weight:bold; border:none; border-radius:6px; cursor:pointer; transition:0.2s; margin-bottom:30px; }
+.logout-btn:hover { background:#e60000; }
+
+@media(max-width:768px){ .cards-container { flex-wrap:wrap; } }
+</style>
+</head>
+<body>
+
+<header>
+<img src="logo.jpg" alt="Logo">
+<h1>صالون لمسة إبداعية</h1>
+<h2 id="empNameHeader">مرحبا بك، الموظف</h2>
+</header>
+
+<div class="container">
+
+<div class="cards-container">
+<div class="card" id="cashCard"><h3>كاش</h3><p>0</p></div>
+<div class="card" id="networkCard"><h3>شبكة</h3><p>0</p></div>
+<div class="card" id="totalCard"><h3>الإجمالي</h3><p>0</p></div>
+</div>
+
+<div class="actions-row">
+<button onclick="addSaleType('cash')">كاش</button>
+<button onclick="addSaleType('network')">شبكة</button>
+<input type="number" id="saleAmount" placeholder="المبلغ">
+</div>
+
+<div class="search-row">
+<input type="date" id="fromDate">
+<input type="date" id="toDate">
+<button onclick="filterSales()">بحث</button>
+</div>
+
+<table id="salesTable">
+<thead>
+<tr><th>التاريخ</th><th>الوقت</th><th>نوع الدفع</th><th>المبلغ</th></tr>
+</thead>
+<tbody></tbody>
+</table>
+
+<button class="logout-btn" onclick="logout()">تسجيل الخروج</button>
+</div>
+
+<script src="localStorage_data.js"></script>
+<script>
+if(!localStorage.getItem("currentEmployee")){
+    alert("⚠ يجب تسجيل الدخول كموظف!");
+    window.location.href="index.html";
+}
+
+const empUsername = localStorage.getItem("currentEmployee");
+const workers = getWorkers();
+const empObj = workers.find(w => w.username === empUsername);
+document.getElementById("empNameHeader").innerText = "مرحبا بك، " + (empObj ? empObj.name : "الموظف");
+
+function updateCards(){
+    const sales = getSalesByEmployee(empUsername);
+    let cash=0, network=0;
+    sales.forEach(s=>{
+        if(s.type==='cash') cash+=s.amount;
+        else if(s.type==='network') network+=s.amount;
+    });
+    document.getElementById("cashCard").querySelector("p").innerText = cash;
+    document.getElementById("networkCard").querySelector("p").innerText = network;
+    document.getElementById("totalCard").querySelector("p").innerText = cash + network;
+}
+
+function renderTable(sales){
+    const tbody = document.getElementById("salesTable").querySelector("tbody");
+    tbody.innerHTML = "";
+    sales.forEach(s=>{
+        const date = new Date(s.dateTime);
+        const dateStr = date.toLocaleDateString('ar-EG');
+        const timeStr = date.toLocaleTimeString('ar-EG',{hour:'2-digit',minute:'2-digit'});
+        const tr = document.createElement("tr");
+        tr.innerHTML = `<td>${dateStr}</td><td>${timeStr}</td><td>${s.type==='cash'?'كاش':'شبكة'}</td><td>${s.amount}</td>`;
+        tbody.appendChild(tr);
+    });
+}
+
+function addSaleType(type){
+    const amount = parseFloat(document.getElementById("saleAmount").value);
+    if(isNaN(amount) || amount<=0){ alert("ادخل المبلغ الصحيح"); return; }
+    addSale({employee: empUsername, type, amount, dateTime: new Date().toISOString()});
+    document.getElementById("saleAmount").value="";
+    updateCards();
+    renderTable(getSalesByEmployee(empUsername));
+}
+
+function filterSales(){
+    const from = document.getElementById("fromDate").value;
+    const to = document.getElementById("toDate").value;
+    if(!from || !to){ alert("اختر التواريخ"); return; }
+    renderTable(getSalesByEmployee(empUsername).filter(s=>s.dateTime.split('T')[0]>=from && s.dateTime.split('T')[0]<=to));
+}
+
+function logout(){ logoutEmployee(); window.location.href="index.html"; }
+
+updateCards();
+renderTable(getSalesByEmployee(empUsername));
+window.addEventListener("storage", e=>{
+    if(e.key==='salesUpdated'){ updateCards(); renderTable(getSalesByEmployee(empUsername)); }
+});
+</script>
+</body>
+</html>
